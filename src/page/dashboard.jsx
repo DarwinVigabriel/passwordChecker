@@ -1,19 +1,17 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { EncryptedText } from "@/components/ui/encrypted-text";
 import { PlaceholdersAndVanishInput } from "@/components/ui/placeholders-and-vanish-input";
 import { RippleButton } from "@/components/animate-ui/components/buttons/ripple";
-import { Progress, ProgressTrack, ProgressLabel, ProgressValue } from "@/components/animate-ui/components/base/progress";
+import { Progress, ProgressTrack } from "@/components/animate-ui/components/base/progress";
 import { ProgressIndicator } from "@/components/animate-ui/primitives/base/progress";
-import {
-    AnimatedSpan,
-    Terminal,
-    TypingAnimation,
-} from "@/components/ui/terminal"
+import { TextAnimate } from "@/components/ui/text-animate";
 
 export default function Dashboard() {
     const [showTerminal, setShowTerminal] = useState(false);
     const [inputValue, setInputValue] = useState("");
-    const [terminalLines, setTerminalLines] = useState([]);
+    // no terminal lines state — using TextAnimate for password reveal
+    const [isPasswordReady, setIsPasswordReady] = useState(false);
+    const passwordReadyTimerRef = useRef(null);
     const [lastGeneratedPassword, setLastGeneratedPassword] = useState("");
     useEffect(() => {
         const prevBg = document.body.style.backgroundColor;
@@ -42,6 +40,9 @@ export default function Dashboard() {
             }
             if (!hadDark) {
                 htmlClassList.remove("dark");
+            }
+            if (passwordReadyTimerRef.current) {
+                clearTimeout(passwordReadyTimerRef.current);
             }
         };
     }, []);
@@ -81,26 +82,17 @@ export default function Dashboard() {
     // When user clicks, toggle terminal and generate a new password when opening
     const handleGenerateClick = () => {
         const newPassword = generatePassword(20);
-        const newLines = [
-            { type: 'typing', text: 'pnpm DarkWinD-Software init' },
-            { type: 'span', text: '✔ Comprobación previa del sistema.' },
-            { type: 'span', text: '✔ Verificando dependencias (node, git)...' },
-            { type: 'span', text: '✔ Conectando al servicio DarkWinD Cloud...' },
-            { type: 'span', text: '✔ Autenticando token de CLI...' },
-            { type: 'span', text: '✔ Validando Formato Requerido.' },
-            { type: 'span', text: '✔ Aplicando cifrado (AES-256) a la credencial...' },
-            { type: 'span', text: '✔ Guardando credenciales en el almacén seguro.' },
-            { type: 'span', text: '✔ Renderizando Contraseña.' },
-            { type: 'span', text: '¡Éxito! Contraseña generada:' },
-            { type: 'typing', text: newPassword },
-        ];
-        setTerminalLines(newLines);
+        // build sequence is no longer stored; we show a morphing text while generating
         setLastGeneratedPassword(newPassword);
         setShowTerminal(true);
+        setIsPasswordReady(false);
+        // ensure we clean previous timers (not strictly needed with morph reveal but safe)
+        if (passwordReadyTimerRef.current) {
+            clearTimeout(passwordReadyTimerRef.current);
+            passwordReadyTimerRef.current = null;
+        }
     }
-    const maxWords = 10;
     const maxChars = 20;
-    const wordCount = Math.max(0, (inputValue || "").trim().split(/\s+/).filter(Boolean).length);
     const charCount = (inputValue || "").length;
     // compute a password strength score for Confiabilidad
     const computeStrength = (value) => {
@@ -180,13 +172,19 @@ export default function Dashboard() {
                 <div className="w-full flex justify-center mt-6">
                     <RippleButton
                         onClick={() => {
-                            if (showTerminal) {
-                                setShowTerminal(false);
-                                setTerminalLines([]);
-                            } else {
-                                handleGenerateClick();
-                            }
-                        }}
+                                if (showTerminal) {
+                                    setShowTerminal(false);
+                                    // just clear the last generated password and hide
+                                    setLastGeneratedPassword("");
+                                    setIsPasswordReady(false);
+                                    if (passwordReadyTimerRef.current) {
+                                        clearTimeout(passwordReadyTimerRef.current);
+                                        passwordReadyTimerRef.current = null;
+                                    }
+                                } else {
+                                    handleGenerateClick();
+                                }
+                            }}
                         className="px-6 py-3"
                         variant="default">
                         {showTerminal ? 'Ocultar' : 'Generar Contraseña'}
@@ -194,12 +192,43 @@ export default function Dashboard() {
                 </div>
                 {showTerminal && (
                     <div className="mt-6 w-full flex justify-center">
-                        <Terminal className="text-left w-full max-w-3xl max-h-[60vh] overflow-auto">
-                            {terminalLines.map((l, idx) => {
-                                if (l.type === 'typing') return <TypingAnimation key={idx}>{l.text}</TypingAnimation>
-                                return <AnimatedSpan key={idx}>{l.text}</AnimatedSpan>
-                            })}
-                        </Terminal>
+                        <div className="w-full max-w-3xl">
+                            {/*
+                                Use `TextAnimate` to show a blur-in placeholder and reveal the
+                                password once its animation completes (onAnimationComplete).
+                            */}
+                            {!isPasswordReady && (
+                                <TextAnimate
+                                    as="p"
+                                    animation="blurInUp"
+                                    by="character"
+                                    once={true}
+                                    startOnView={false}
+                                    className="text-white text-center text-2xl"
+                                    onAnimationComplete={() => {
+                                        // small setTimeout to let the appearance feel natural
+                                        passwordReadyTimerRef.current = setTimeout(() => {
+                                            setIsPasswordReady(true);
+                                            passwordReadyTimerRef.current = null;
+                                        }, 50);
+                                    }}
+                                >
+                                    Generando contraseña...
+                                </TextAnimate>
+                            )}
+                            {isPasswordReady && lastGeneratedPassword && (
+                                <TextAnimate
+                                    as="p"
+                                    animation="blurInUp"
+                                    by="character"
+                                    once={true}
+                                    startOnView={false}
+                                    className="text-white text-center text-2xl"
+                                >
+                                    {lastGeneratedPassword}
+                                </TextAnimate>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
