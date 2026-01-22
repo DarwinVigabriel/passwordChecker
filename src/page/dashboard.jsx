@@ -5,6 +5,7 @@ import { RippleButton } from "@/components/animate-ui/components/buttons/ripple"
 import { Progress, ProgressTrack } from "@/components/animate-ui/components/base/progress";
 import { ProgressIndicator } from "@/components/animate-ui/primitives/base/progress";
 import { TextAnimate } from "@/components/ui/text-animate";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
 export default function Dashboard() {
     const [showTerminal, setShowTerminal] = useState(false);
@@ -14,23 +15,18 @@ export default function Dashboard() {
     const passwordReadyTimerRef = useRef(null);
     const [lastGeneratedPassword, setLastGeneratedPassword] = useState("");
     useEffect(() => {
+        // Keep track of previous styles if any code wants to restore later (not used now)
         const prevBg = document.body.style.backgroundColor;
         const prevHtmlBg = document.documentElement.style.backgroundColor;
         const rootEl = document.getElementById("root");
         const prevRootBorder = rootEl?.style?.border;
         const prevRootOutline = rootEl?.style?.outline;
-        document.body.style.backgroundColor = "#000";
-        document.documentElement.style.backgroundColor = "#000";
+        // Do not override body/html background inline — theme is handled globally
         if (rootEl) {
             rootEl.style.border = "0";
             rootEl.style.outline = "0";
         }
-        // add 'dark' class to enable dark styles for shadcn components (like the input)
-        const htmlClassList = document.documentElement.classList;
-        const hadDark = htmlClassList.contains("dark");
-        if (!hadDark) {
-            htmlClassList.add("dark");
-        }
+        // The global theme toggler will manage the `dark` class — do not force it here
         return () => {
             document.body.style.backgroundColor = prevBg;
             document.documentElement.style.backgroundColor = prevHtmlBg;
@@ -38,9 +34,7 @@ export default function Dashboard() {
                 rootEl.style.border = prevRootBorder ?? "";
                 rootEl.style.outline = prevRootOutline ?? "";
             }
-            if (!hadDark) {
-                htmlClassList.remove("dark");
-            }
+            // no-op: we don't toggle global theme from the Dashboard
             if (passwordReadyTimerRef.current) {
                 clearTimeout(passwordReadyTimerRef.current);
             }
@@ -127,14 +121,14 @@ export default function Dashboard() {
     }
 
     return (
-        <div className="min-h-screen w-full bg-black flex items-start md:items-center justify-center border-0 outline-0 py-8">
+        <div className="min-h-screen w-full bg-background text-foreground flex items-start md:items-center justify-center border-0 outline-0 py-8">
             <div className="rounded-xl border-0 outline-0 flex flex-col items-center gap-10 p-6">
                 <h1>
                     <EncryptedText
                         text="Probemos tu contraseña"
-                        className="text-5xl sm:text-6xl md:text-7xl leading-tight font-mono text-white"
+                        className="text-5xl sm:text-6xl md:text-7xl leading-tight font-mono text-foreground"
                         encryptedClassName="text-gray-400"
-                        revealedClassName="text-white"
+                        revealedClassName="text-foreground"
                     />
                 </h1>
                 <PlaceholdersAndVanishInput
@@ -144,7 +138,7 @@ export default function Dashboard() {
                         console.log("Submitted value:", val);
                     }}
                     onChange={(e, val) => setInputValue(val)}
-                    className="bg-transparent dark:bg-transparent shadow-none border-none text-white w-full max-w-3xl h-20"
+                    className="bg-transparent dark:bg-transparent shadow-none border-none text-foreground w-full max-w-3xl h-20"
                     inputClassName="text-lg sm:text-xl pl-6 sm:pl-12 pr-28"
                 />
                 {/* Progress bars: words and characters */}
@@ -204,7 +198,7 @@ export default function Dashboard() {
                                     by="character"
                                     once={true}
                                     startOnView={false}
-                                    className="text-white text-center text-2xl"
+                                    className="text-foreground text-center text-2xl"
                                     onAnimationComplete={() => {
                                         // small setTimeout to let the appearance feel natural
                                         passwordReadyTimerRef.current = setTimeout(() => {
@@ -223,7 +217,7 @@ export default function Dashboard() {
                                     by="character"
                                     once={true}
                                     startOnView={false}
-                                    className="text-white text-center text-2xl"
+                                    className="text-foreground text-center text-2xl"
                                 >
                                     {lastGeneratedPassword}
                                 </TextAnimate>
@@ -232,7 +226,7 @@ export default function Dashboard() {
                     </div>
                 )}
             </div>
-        </div>
+        </div> 
     );
 }
 

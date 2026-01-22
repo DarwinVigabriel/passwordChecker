@@ -66,6 +66,8 @@ export const AnimatedThemeToggler = ({
       ref={buttonRef}
       onClick={toggleTheme}
       className={cn(className)}
+      aria-pressed={isDark}
+      title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
       {...props}>
       {isDark ? <Sun /> : <Moon />}
       <span className="sr-only">Toggle theme</span>

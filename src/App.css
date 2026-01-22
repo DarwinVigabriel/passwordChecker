@@ -116,6 +116,9 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Convenience variables used by Tailwind utilities like bg-black/text-white */
+  --color-black: var(--foreground);
+  --color-white: var(--background);
 }
 
 .dark {
@@ -150,6 +153,9 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  /* Flip common colors for utility classes */
+  --color-black: var(--background);
+  --color-white: var(--foreground);
 }
 
 @layer base {
@@ -164,4 +170,10 @@
 ::view-transition-old(root), ::view-transition-new(root) {
     animation: none;
     mix-blend-mode: normal;
+}
+
+/* Enforce root background and foreground colors using CSS variables so theme toggling applies globally */
+html, body, #root {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
 }
